@@ -6,7 +6,7 @@ A Flutter mobile app that brings together announcements, events, clubs and pract
 > **Program / Level:** Android Development
 > **Supervisor:** Clement Regis Tuyishime
 > **Academic year:** 2026-2027
-> **Source code:** https://github.com/hindelmess06-hue/StudentHub
+
 
 ---
 
