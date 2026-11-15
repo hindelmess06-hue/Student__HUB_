@@ -110,28 +110,6 @@ Tip: signing up with `admin@ueuromed.org` gives Super Admin rights ("+" button i
    flutterfire configure
    ```
    This command replaces `lib/firebase_options.dart` and creates `android/app/google-services.json`. That file is intentionally not in the repository (`.gitignore`): each developer must generate it.
-4. Make sure `minSdk` is at least **23** in `android/app/build.gradle(.kts)`.
-5. Run:
-   ```bash
-   flutter run --dart-define=USE_FIREBASE=true
-   ```
-
-### Build the APK
-
-Make sure `android/app/src/main/AndroidManifest.xml` contains the `android.permission.INTERNET` permission, then:
-
-```bash
-flutter build apk --release --dart-define=USE_FIREBASE=true
-```
-
-The file is at `build/app/outputs/flutter-apk/app-release.apk`.
-
-### Run the tests
-
-```bash
-flutter test
-```
-
 ## 7. Architecture
 
 ```
