@@ -54,11 +54,11 @@ The Super Admin can manage the whole app:
 | Grant permissions to an account: approving a request assigns the role and entity to the user | Available |
 | Change the Open / Closed status of **any** campus service and show an **emergency banner** | Available |
 | View the **audit log** (who did what, and when) | Available |
-| Add, edit or delete events | Planned |
-| Edit club pages (description, president, updates) | Planned |
-| Edit the opening and closing hours of services | Planned |
-| Accept or refuse a student's entry into a club, based on their application message | Planned |
-| Edit any content of the app in an emergency | Planned |
+| Add, edit or delete events | Available |
+| Edit club pages (description, president, updates) | Available |
+| Edit the opening and closing hours of services | Available|
+| Accept or refuse a student's entry into a club, based on their application message | Available|
+| Edit any content of the app in an emergency |Available |
 
 > **How to become Super Admin:** the addresses listed in `AppConfig.publisherEmails` (`lib/app_config.dart`) are Super Admins, for example `admin@ueuromed.org`. This is a prototype shortcut (see section 8).
 
