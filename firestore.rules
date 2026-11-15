@@ -1,0 +1,174 @@
+rules_version = '2';
+
+// Student Hub security rules.
+// Deploy:  firebase deploy --only firestore:rules
+//
+// The app hides buttons by role, but ONLY these rules actually stop someone
+// from calling Firestore directly. They enforce the same permission matrix as
+// lib/services/permissions.dart.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() { return request.auth != null; }
+
+    // Only verified @ueuromed.org accounts get any access at all.
+    function uemf() {
+      return signedIn()
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@([a-z0-9-]+[.])*ueuromed[.]org');
+    }
+
+    function me() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function hasProfile() { return exists(/databases/$(database)/documents/users/$(request.auth.uid)); }
+    function role() { return hasProfile() ? me().role : 'student'; }
+    function isAdmin() { return uemf() && role() == 'super_admin'; }
+    function isProf() { return uemf() && role() == 'professor'; }
+    function isLeaderOf(clubId) {
+      return uemf() && role() == 'club_leader' && me().assignedEntity == clubId;
+    }
+    function isManagerOf(facilityId) {
+      return uemf() && role() == 'facility_manager' && me().assignedEntity == facilityId;
+    }
+    function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
+
+    // ---------- users ----------
+    match /users/{uid} {
+      allow read: if uemf() && (resource.data.uid == request.auth.uid || isAdmin());
+
+      // A new account may only create ITS OWN profile, always as a student.
+      // (The very first Super Admin is promoted by hand in the console.)
+      allow create: if uemf()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'student'
+        && request.resource.data.email == request.auth.token.email;
+
+      // People may edit their own faculty and name, never their role.
+      allow update: if uemf() && (
+        isAdmin()
+        || (request.auth.uid == uid
+            && changed().hasOnly(['department', 'name']))
+      );
+    }
+
+    // ---------- role requests ("Demande") ----------
+    match /requests/{id} {
+      allow read: if uemf() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if uemf()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.role in ['facility_manager', 'professor', 'club_leader'];
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // ---------- announcements ----------
+    match /announcements/{id} {
+      allow read: if uemf();
+      allow create: if isAdmin() || uemf() && request.resource.data.authorUid == request.auth.uid && (
+        isProf()
+        || (role() == 'club_leader' && isLeaderOf(request.resource.data.clubId))
+      );
+      allow delete: if isAdmin() || (uemf() && resource.data.authorUid == request.auth.uid);
+      allow update: if isAdmin();
+    }
+
+    // ---------- events ----------
+    match /events/{id} {
+      allow read: if uemf();
+      allow create: if isAdmin() || uemf() && request.resource.data.createdBy == request.auth.uid && (
+        isProf()
+        || isLeaderOf(request.resource.data.clubId)
+        || isManagerOf(request.resource.data.facilityId)
+      );
+      // The creator (or an admin) may edit it; nobody else.
+      allow update, delete: if isAdmin() || (uemf() && resource.data.createdBy == request.auth.uid);
+    }
+
+    // ---------- QR check-in ----------
+    // The secret token lives in its own collection that only the organiser
+    // and admins can read. Students prove they scanned it by including the
+    // token in their check-in document; the rule compares it server-side.
+    match /eventSecrets/{eventId} {
+      allow read: if uemf() && (
+        isAdmin()
+        || get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.createdBy == request.auth.uid
+      );
+      allow create, update: if uemf() && (
+        isAdmin()
+        || get(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid
+      );
+      allow delete: if isAdmin()
+        || (uemf() && get(/databases/$(database)/documents/events/$(eventId)).data.createdBy == request.auth.uid);
+    }
+
+    match /checkins/{id} {
+      allow read: if uemf() && (
+        resource.data.uid == request.auth.uid
+        || isAdmin()
+        || get(/databases/$(database)/documents/events/$(resource.data.eventId)).data.createdBy == request.auth.uid
+      );
+      // The document id must be "<eventId>_<uid>", so a student can check in
+      // once per event, only for themselves, and only with the live token.
+      allow create: if uemf()
+        && id == request.resource.data.eventId + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && exists(/databases/$(database)/documents/eventSecrets/$(request.resource.data.eventId))
+        && get(/databases/$(database)/documents/eventSecrets/$(request.resource.data.eventId)).data.open == true
+        && get(/databases/$(database)/documents/eventSecrets/$(request.resource.data.eventId)).data.token == request.resource.data.token;
+      allow update, delete: if false;
+    }
+
+    // ---------- clubs ----------
+    match /clubs/{id} {
+      allow read: if uemf();
+      allow create, delete: if isAdmin();
+      // A club leader may edit only their own club's text fields and updates.
+      allow update: if isAdmin() || (
+        isLeaderOf(id)
+        && changed().hasOnly(['tagline', 'description', 'email', 'updates'])
+      );
+    }
+
+    // ---------- campus areas ----------
+    match /facilities/{id} {
+      allow read: if uemf();
+      allow create, delete: if isAdmin();
+      // A facility manager may change only status, note and hours of THEIR area.
+      allow update: if isAdmin() || (
+        isManagerOf(id)
+        && changed().hasOnly(['status', 'note', 'openMinute', 'closeMinute', 'updatedBy', 'updatedAt'])
+      );
+    }
+
+    // ---------- emergency banners ----------
+    match /alerts/{id} {
+      allow read: if uemf();
+      allow create: if uemf() && request.resource.data.createdBy == request.auth.uid && (
+        isAdmin()
+        || isManagerOf(request.resource.data.facilityId)
+      );
+      // Resolve = set active:false. Admin, the author, or that facility's manager.
+      allow update: if isAdmin()
+        || (uemf() && resource.data.createdBy == request.auth.uid)
+        || isManagerOf(resource.data.facilityId);
+      allow delete: if false;
+    }
+
+    // ---------- audit log (append-only) ----------
+    match /logs/{id} {
+      allow read: if isAdmin();
+      // Staff log their own actions; students may only log a role request.
+      allow create: if uemf()
+        && request.resource.data.actorUid == request.auth.uid
+        && (
+          role() != 'student'
+          || request.resource.data.action.matches('requested the .*')
+        );
+      allow update, delete: if false;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
