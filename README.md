@@ -1,170 +1,195 @@
-# Student Hub (UEMF) v2
+# Student Hub (UEMF)
 
-A Flutter app that puts announcements, events, clubs and campus services in one
-place, now with **role-based staff tools**, an **access-request workflow**,
-**emergency banners**, **faculty filters**, an **audit log** and **QR check-in**.
+A Flutter mobile app that brings together announcements, events, clubs and practical information for the campus of Euromed University of Fez (UEMF).
 
-## Roles and what each can do
+> **Project by:** Hind El Messaouri, Marwa Reffouh, Firdawss El Hayouni, Hamza Smlali, Mohammed Wassim Boukhari
+> **Program / Level:** Android Development
+> **Supervisor:** Clement Regis Tuyishime
+> **Academic year:** 2026-2027
+> **Source code:** https://github.com/hindelmess06-hue/StudentHub
 
-| Role (`role` in the user document) | Scope (`assignedEntity`) | Can |
-| --- | --- | --- |
-| `student` (default) | none | Browse news, see facility status, follow clubs, RSVP, check in by QR, pick a faculty filter, apply for a staff role |
-| `facility_manager` | a facility id, e.g. `library`, `gym` | Set **only that area** to Open / Closed / Maintenance, edit its hours and message, post an **urgent banner** for it, create sessions with QR check-in |
-| `professor` | none | Post **high-priority academic announcements** (optionally for one faculty), create faculty-wide events |
-| `club_leader` | a club id, e.g. `devhub` | Edit **only their club's** page, post club updates and announcements, create club events with QR check-in |
-| `super_admin` | none | Approve/reject requests and assign scope, change anyone's role, create campus areas, post campus-wide banners, read the audit log, delete any content |
+---
 
-Staff controls appear automatically: the app listens to the user's document, so
-the moment an admin approves a request the new buttons unlock (no restart).
+## 1. Overview
 
-## The "Demande" workflow
+Students currently receive campus information through many scattered channels. Student Hub offers a single entry point reserved for university members: only `@ueuromed.org` addresses are accepted, and access is granted only after the e-mail address has been verified.
 
-1. Student: **Profile → Apply for Staff / Organizer Role**, picks the role
-   (Facility staff / Professor / Club leader), the area or club, and writes a
-   justification.
-2. Super Admin: **Admin dashboard → Requests** shows each pending request with
-   name, `@ueuromed.org` email and justification.
-3. **Approve** opens a sheet to confirm the role and assign the scope
-   (for example "Library" for a library worker). **Reject** takes a reason.
-4. The app writes `role` + `assignedEntity` to the user's document. The
-   applicant sees the decision in "My requests" and their tools unlock.
+The app distinguishes several **roles** (student, club leader, professor, facility manager, Super Admin). The Super Admin oversees the whole app (see section 3).
 
-## The extra features
+## 2. Features
 
-- **Emergency banners.** A facility manager (own area) or admin (campus-wide)
-  posts an urgent red banner; it is pinned at the top of every student's Home
-  until someone taps **Resolve**.
-- **Faculty / major filter.** Students pick a faculty in Profile. News and
-  events targeted at other faculties are hidden (general items always show). A
-  "Show all / Only mine" switch sits above the News and Events lists.
-- **Audit log.** Every staff action writes an entry (who, role, what, when),
-  for example "Ahmed set Library to Maintenance". Admin dashboard → Audit log.
-- **QR check-in.** An organiser opens the event → **QR check-in** → a live QR
-  code plus an attendance list. Students tap **Scan to check in** on the event
-  page. "New code" rotates the secret; "Stop" closes the session. A student can
-  check in once per event.
+| Module | Description |
+| --- | --- |
+| **Sign-up / Sign-in** | `@ueuromed.org` domain (and subdomains) only. Live validation, typo correction suggestions, password strength indicator, forgot password. |
+| **E-mail verification** | No access to the app until the address is verified. Automatic check every 4 seconds, resend limited to once every 30 seconds. |
+| **Home** | Pinned announcement, statistics, latest news, upcoming events, clubs to discover, global search. |
+| **News** | Categories, search, unread indicator, bookmarks, detail page, department filter (urgent announcements always get through). Publishers can post. |
+| **Events** | 14-day date strip, category filter, "I'm going" agenda, detail page. |
+| **Clubs** | Category filter, follow / unfollow, club page with updates timeline and contact, membership application with a message. |
+| **Campus** | Services with live Open / Closed status, opening hours, locations, useful contacts. A manager can override the status and show an emergency banner. |
+| **Profile** | "Verified" badge, counters, department, accent colour choice, role request, sign out. Administrators also get a dashboard and an audit log. |
 
-## 1. Run it (Demo mode, no backend)
+## 3. Roles and permissions
 
-Everything works on one phone. Accounts, content and the approval workflow are
-stored locally, so you can test every role by signing out and in as different
-accounts.
+### Roles
+
+| Role | Description |
+| --- | --- |
+| **Student** | Default role: reads news, follows clubs, RSVPs to events, checks services. |
+| **Club leader** | Can publish announcements. |
+| **Professor** | Can publish announcements. |
+| **Facility manager** | Can change the status of the service assigned to them (for example the library). |
+| **Super Admin** | Full access, see below. |
+
+A student can request a role from their profile by giving the role wanted, the entity concerned and a justification. The Super Admin processes these requests.
+
+### The Super Admin
+
+The Super Admin can manage the whole app:
+
+| Capability | Status |
+| --- | --- |
+| Publish announcements, including urgent ones, targeted by department | Available |
+| Receive role requests (name, e-mail, entity, justification) and **approve or reject** them | Available |
+| Grant permissions to an account: approving a request assigns the role and entity to the user | Available |
+| Change the Open / Closed status of **any** campus service and show an **emergency banner** | Available |
+| View the **audit log** (who did what, and when) | Available |
+| Add, edit or delete events | Planned |
+| Edit club pages (description, president, updates) | Planned |
+| Edit the opening and closing hours of services | Planned |
+| Accept or refuse a student's entry into a club, based on their application message | Planned |
+| Edit any content of the app in an emergency | Planned |
+
+> **How to become Super Admin:** the addresses listed in `AppConfig.publisherEmails` (`lib/app_config.dart`) are Super Admins, for example `admin@ueuromed.org`. This is a prototype shortcut (see section 8).
+
+### Request handling flow
+
+1. The student sends a role request from their profile.
+2. The Super Admin opens the dashboard (profile) and sees the list of pending requests.
+3. They read the name, e-mail, entity and justification, then choose **Approve** or **Reject**.
+4. The action is recorded in the audit log.
+
+## 4. Technologies
+
+- **Flutter / Dart**: mobile app (Android)
+- **Provider**: state management (a single `AppState`)
+- **Firebase Authentication**: accounts and e-mail verification
+- **shared_preferences**: local storage (bookmarks, follows, posts, requests, log)
+- **google_fonts**: Space Grotesk and Inter fonts
+- Two run modes: **Demo** (no server) and **Firebase** (real)
+
+## 5. Requirements
+
+- Flutter SDK (stable): https://docs.flutter.dev/get-started/install
+- Android Studio with an emulator (e.g. Pixel 7) or an Android phone with USB debugging
+- For Firebase mode: a Google account and a Firebase project
+
+> **Windows:** the project, the Flutter SDK (`C:\src\flutter`) and the package cache (`PUB_CACHE=C:\pub_cache`) must be in paths **without spaces**, and Windows **Developer Mode** must be enabled.
+
+## 6. Installation and run
+
+### Demo mode (no server needed)
+
+Accounts are stored on the device and the 6-digit verification code is shown on screen. **No real e-mail is sent in this mode.**
 
 ```bash
-flutter create . --platforms=android --org ma.ueuromed --project-name student_hub
 flutter pub get
 flutter run
 ```
 
-Demo walkthrough:
-1. Sign up as `admin@ueuromed.org` (auto Super Admin in Demo mode). Verify with
-   the on-screen code. Open Profile → Admin dashboard.
-2. Sign out, sign up as `ahmed@ueuromed.org`, Profile → **Apply for Staff /
-   Organizer Role** → Facility staff → Library.
-3. Sign out, sign in as admin → Requests → **Approve** → assign Library.
-4. Sign in as Ahmed: the Library card now has a controls icon, and Home shows
-   a **Staff tools** card.
+Tip: signing up with `admin@ueuromed.org` gives Super Admin rights ("+" button in the News tab, dashboard in the profile, service management in the Campus tab).
 
-In Demo mode the verification "email" is a 6-digit code shown on screen. No
-real email is sent.
-
-## 2. Real accounts, real emails, shared data (Firebase)
+### Firebase mode (real e-mail verification)
 
 1. Create a project at https://console.firebase.google.com
-2. **Authentication → Email/Password → Enable.**
-3. **Firestore Database → Create database** (production mode).
-4. In this folder:
+2. **Authentication → Sign-in method → Email/Password → Enable**
+3. Configure the project:
    ```bash
    dart pub global activate flutterfire_cli
    firebase login
-   flutterfire configure          # overwrites lib/firebase_options.dart
-   firebase deploy --only firestore:rules   # uploads firestore.rules
+   flutterfire configure
    ```
-5. Android: set `minSdk` to **23** or higher in `android/app/build.gradle(.kts)`.
-   Add to `android/app/src/main/AndroidManifest.xml`:
-   ```xml
-   <uses-permission android:name="android.permission.INTERNET"/>
-   <uses-permission android:name="android.permission.CAMERA"/>
+   This command replaces `lib/firebase_options.dart` and creates `android/app/google-services.json`. That file is intentionally not in the repository (`.gitignore`): each developer must generate it.
+4. Make sure `minSdk` is at least **23** in `android/app/build.gradle(.kts)`.
+5. Run:
+   ```bash
+   flutter run --dart-define=USE_FIREBASE=true
    ```
-6. Run: `flutter run --dart-define=USE_FIREBASE=true`
 
-### Create the first Super Admin (one time)
+### Build the APK
 
-A client app must never be able to promote itself, so the first admin is set
-by hand:
-
-1. Run the app with Firebase, sign up with your UEMF email, verify it.
-2. Firebase console → Firestore → collection `users` → your document →
-   change `role` from `student` to `super_admin`.
-3. Reopen the app. The Admin dashboard is now available.
-4. Admin dashboard → **Areas → Load sample content** fills the database with
-   the sample announcements, events, clubs and campus areas.
-
-## Security: what is enforced where
-
-The app hides buttons by role, but **only `firestore.rules` actually stops
-someone calling Firestore directly.** The rules enforce the same matrix as
-`lib/services/permissions.dart`:
-
-- Only **verified** `@ueuromed.org` accounts can read anything.
-- Users can create only their own profile, always as `student`, and can edit
-  only their faculty and name. Only a super admin can change a role.
-- A facility manager can change only `status`, `note` and hours of **their**
-  area. A club leader can change only **their** club's text fields.
-- Check-in: the secret lives in `eventSecrets` (organiser/admin only). A
-  student's check-in document must carry the live token, use the id
-  `<eventId>_<uid>` (one per student), and is rejected if the session is closed.
-- The audit log is append-only and readable by admins only.
-
-Known limits you should mention in a report:
-- The rules have not been run in the Firebase emulator here. Test them with
-  `firebase emulators:start` before real use. Listing check-ins for one event
-  may need the organiser to be an admin or a rule tweak if Firestore reports a
-  "query not provably allowed" error.
-- Audit entries are written by the client, so they are trustworthy for honest
-  staff accountability, not tamper-proof against a malicious admin. For that,
-  write logs from a Cloud Function.
-- Faculty filtering hides content in the app; it is not a privacy boundary (all
-  verified students can technically read all announcements).
-- Push notifications are not included (they need Firebase Cloud Messaging and a
-  backend trigger). Faculty targeting is ready for it: each post has a
-  `department` field.
-
-## 3. Build the APK
+Make sure `android/app/src/main/AndroidManifest.xml` contains the `android.permission.INTERNET` permission, then:
 
 ```bash
 flutter build apk --release --dart-define=USE_FIREBASE=true
-# build/app/outputs/flutter-apk/app-release.apk
 ```
 
-## Notes
+The file is at `build/app/outputs/flutter-apk/app-release.apk`.
 
-- **Sample content.** News, events, clubs, hours and contact emails in
-  `lib/data/seed_data.dart` are placeholders. Replace with real data.
-- **Not compiled here.** This code was written without a Flutter toolchain, so
-  it has been statically checked (brackets, imports, packages, cross-file
-  member usage) but never compiled or run. Run `flutter analyze` and
-  `flutter test` first and fix any small errors.
-- **Camera.** QR scanning needs a real device (emulators have no camera). The
-  scan screen also has a paste-the-code fallback.
+### Run the tests
 
-## Project layout
+```bash
+flutter test
+```
+
+## 7. Architecture
 
 ```
-firestore.rules               server-side security rules
 lib/
-  main.dart                   entry, picks Demo/Firebase stores
-  app_config.dart             domains, faculties, demo admin
-  models/models.dart          Role, UserProfile, RoleRequest, Facility, CampusAlert, LogEntry...
-  services/
-    permissions.dart          the role matrix (single source of truth in the UI)
-    data_store.dart           DataStore interface: LocalStore (demo) + FirestoreStore
-    auth_service.dart         Firebase + Demo auth
-    email_rules.dart          UEMF-only validation
-  state/app_state.dart        live streams, role workflow, alerts, audit log, check-in
-  widgets/                    shared UI, alert banner, staff tools, form widgets
-  screens/                    home, news, events, clubs, campus, profile,
-                              request_screen, admin_screen, checkin_screen,
-                              scan_screen, sheets (all staff forms)
-test/                         email rules, permissions, facility status, documents
+├── main.dart                 Entry point, routing based on sign-in state
+├── app_config.dart           Allowed domains, Super Admins, Demo / Firebase mode
+├── firebase_options.dart     Firebase configuration (generated by flutterfire)
+├── theme/app_theme.dart      Colours, fonts, accent palettes
+├── models/models.dart        Announcement, Event, Club, Campus service, Audit log
+├── data/seed_data.dart       Sample content
+├── services/
+│   ├── email_rules.dart      UEMF validation and correction suggestions
+│   └── auth_service.dart     Firebase and Demo implementations
+├── state/app_state.dart      Session, roles, requests, follows, agenda, bookmarks,
+│                             publishing, service status, audit log
+├── utils/format.dart         Date and name formatting
+├── widgets/                  Shared UI components
+└── screens/                  Screens (auth, verification, home, news, events,
+                              clubs, campus, profile, search)
+test/widget_test.dart         Unit tests for the e-mail rules
 ```
+
+**Principle:** the screen shown depends on a single state, `AuthStatus` (`loading`, `signedOut`, `needsVerification`, `signedIn`). When it changes, the app switches screen automatically.
+
+## 8. Security
+
+The domain check inside the app gives instant feedback, but **it can be bypassed** by someone talking to Firebase directly. The real guarantees are:
+
+- **Verified e-mail required:** the app blocks unverified accounts.
+- **Server-side rules:** for any stored data (Firestore, Storage), require
+  `request.auth.token.email_verified == true && request.auth.token.email.matches('.*@ueuromed[.]org')`.
+- **Blocking at creation:** Firebase Auth *blocking functions* (`beforeCreate`, Identity Platform) can reject any non-UEMF e-mail.
+- **Super Admin and publishing rights:** `AppConfig.publisherEmails` is a prototype shortcut. In production, use Firebase *custom claims* assigned by an administrator, and check permissions on the server.
+- **Passwords:** in Firebase mode they are handled by Firebase. In Demo mode they are only lightly hashed: that mode is for testing, not real use.
+- **No information leak:** password reset never reveals whether an address exists.
+
+## 9. Known limitations
+
+- **Roles in Firebase mode:** the role read from Firebase is always "student" (loading roles from Firestore or custom claims is still to do). Only e-mails in `publisherEmails` are Super Admins.
+- **Request approval:** approving a request changes the role of the signed-in user on the device. It is not yet saved on a server, so it is not shared between devices.
+- **Club membership application:** the message is entered and a confirmation is shown, but the application is not yet sent or stored for a leader to process.
+- **Sample content:** announcements, events, clubs, hours and contacts in `lib/data/seed_data.dart` are fictional and must be replaced with the university's real data.
+- **Local data:** follows, "I'm going", bookmarks, posts, requests and the log are stored on the device. Sharing content between students requires a shared backend (Cloud Firestore is the natural next step; only `AppState` would need to change).
+- **Tests:** only the e-mail rules have automated tests. The rest was tested manually.
+- **Fonts:** loaded through `google_fonts` on first use; bundle them as assets for fully offline use.
+- **Wide screens:** club and campus cards stretch on a very wide screen (Chrome).
+
+## 10. Planned improvements
+
+- Creating and editing events by the Super Admin and club leaders.
+- Editing club pages and service opening hours.
+- A club application queue: student message, accepted or refused by the leader or Super Admin.
+- Cloud Firestore backend and custom claims for shared, secure roles.
+- Push notifications (urgent announcements, event reminders, replies to requests).
+- Add to calendar, interactive campus map, Arabic / French / English localisation.
+- QR code check-in.
+- Unit, widget and integration tests with continuous integration.
+
+## 11. License and contact
+
+Academic project, UEMF. Supervisor: Clement Regis Tuyishime.
